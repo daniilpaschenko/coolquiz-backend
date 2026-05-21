@@ -1,13 +1,11 @@
 # CoolQuiz Backend
 
-Бэкенд-часть для мобильного приложения **CoolQuiz**.
+The backend side for the CoolQuiz mobile application. Built using the Node.js, Express, and MongoDB Atlas stack.
 
-Создана на стекe **Node.js**, **Express** и **MongoDB**.
+## How to run the project locally:
 
-## Как запустить проект локально:
-
-1. Склонируйте репозиторий
-2. Установите зависимости: `npm install`
-3. Создайте файл `.env` в корне проекта и добавьте вашу строку подключения:
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Create a `.env` file in the root of the project and add your connection string:
    `MONGO_URI=your_mongodb_connection_string`
-4. Запустите сервер: `node server.js`
+4. Start the server: `node server.js`
