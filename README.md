@@ -8,6 +8,9 @@ The backend side for the CoolQuiz mobile application. Built using the Node.js, E
 
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Create a `.env` file in the root of the project and add your connection string:
-   `MONGO_URI=your_mongodb_connection_string`
+3. Create a `.env` file in the root of the project and add your connection strings:
+   ```js
+   MONGO_URI=your_mongodb_connection_string
+   JWT_SECRET=your_jwt_string
+   ````
 4. Start the server: `node server.js`
