@@ -3,12 +3,14 @@ const express = require('express');
 const mongoose = require('mongoose');
 
 const authRoutes = require('./routes/auth');
+const quizRoutes = require('./routes/quizzes');
 
 const app = express();
 app.use(express.json()); // для json в запросах
 const PORT = process.env.PORT || 3000;
 
 app.use('/api/auth', authRoutes);
+app.use('/api/quizzes', quizRoutes);
 
 const mongoUri = process.env.MONGO_URI; // строка подключения к MongoDB
 mongoose.connect(mongoUri)
