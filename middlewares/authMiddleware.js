@@ -13,7 +13,7 @@ module.exports = (req,res,next) => {
 
     try {
         // расшифровка токена
-        const decodedToken = jwt.verify(token, procces.env.JWT_SECRET);
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
 
         // сохранить данные для следующего рута
         req.user = decodedToken;
