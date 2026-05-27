@@ -5,7 +5,7 @@ module.exports = (req,res,next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ message: 'Нет авторизации: токен отсутствует' });
+        return res.status(401).json({ message: 'Token is missing' });
     }
 
     // получаем токен, убравь Bearer
@@ -16,12 +16,20 @@ module.exports = (req,res,next) => {
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
 
         // сохранить данные для следующего рута
-        req.user = decodedToken;
+        req.user = {
+            userId: decodedToken.userId,
+            // можно добавить decodedToken.email и т.д.
+        };
 
         next(); // передача управления следующему руту
     } catch (e) {
         console.error(e);
         
-        return res.status(401).json({ message: 'Нет авторизации: неверный или просроченный токен' });
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ message: 'Token is expired',
+                expired: true });
+        }
+        
+        return res.status(401).json({ message: 'Token is wrong' });
     }
 }

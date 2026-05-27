@@ -4,36 +4,52 @@ const { validate } = require('./User');
 // ВОПРОС
 const questionSchema = new mongoose.Schema({
     questionText: {
-        type: 'String',
+        type: String,
         required: true,
         trim: true,
     },
+    imageUrl: {
+        type: String,
+        default: null,
+    },
+    questionType: {
+        type: String,
+        enum: ['multiple', 'open'],
+        default: 'multiple'
+    },
     options: {
         type : [String], // массив строк
-        required: true,
-        validate: [arrayMinLength, 'Вопрос должен содержать минимум 2 варианта ответа']
+        default: null,
+        validate: {validator: function(val) {
+            return this.questionType == 'open' || val.length >= 2;
+        },
+        message: 'The question must contain at least 2 answer options'}
     },
     correctAnswerIndex: {
         type: Number,
-        required: true,
+        default: null,
         min: 0,
+    },
+    correctAnswerText: {
+        type: String,
+        default: null
     }
 });
-
-function arrayMinLength(val) {
-    return (val.length >= 2);
-}
 
 // КВИЗ ИЗ ВОПРОСОВ
 const quizSchema = new mongoose.Schema({
     title: {
-        type: 'String',
+        type: String,
         required: true,
         trim: true,
     },
     description: {
-        type: 'String',
+        type: String,
         trim: true,
+    },
+    imageUrl: {
+        type: String,
+        default: null,
     },
     creator: {
         type: mongoose.Schema.Types.ObjectId, // айди создателя
@@ -41,10 +57,14 @@ const quizSchema = new mongoose.Schema({
         ref: 'User'
     },
     questions: [questionSchema], // массив вопросов
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    }
-});
+    isPublic: {
+        type: Boolean,
+        default: true
+    },
+    tags: [{
+        type: String
+    }],
+}, { timestamps: true}
+);
 
 module.exports = mongoose.model('Quiz', quizSchema);
