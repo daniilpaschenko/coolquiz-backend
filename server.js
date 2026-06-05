@@ -17,27 +17,27 @@ app.use(cors({
     origin: ['http://localhost:3000'],
     credentials: true,
 }));
-app.use(express.json()); // для json в запросах
+app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api', attemptRoutes);
-app.use(errorHandler); // обработчик ошибок
+app.use(errorHandler);
 
-const mongoUri = process.env.MONGO_URI; // строка подключения к MongoDB
+const mongoUri = process.env.MONGO_URI;
+
 mongoose.connect(mongoUri)
-    .then(() => console.log('🚀 Successfully connected to the CoolQuiz cloud MongoDB!'))
+    .then(() => {
+        console.log('🚀 Successfully connected to the CoolQuiz cloud MongoDB!');
+        app.listen(PORT, () => {
+            console.log(`The server is running: http://localhost:${PORT}`);
+        });
+    })
     .catch(err => {
         console.error('❌ Error connecting to the database:', err);
         process.exit(1);
     });
 
-// запуск сервера на прослушивание порта
-app.listen(PORT, () => {
-    console.log(`The server is running: http://localhost:${PORT}`);
-});
-
-// обработка необработанных ошибок
 process.on('unhandledRejection', (err) => {
     console.error('An unhandled error:', err);
     process.exit(1);

@@ -1,78 +1,89 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const validateMiddleware = require('../middlewares/validateMiddleware');
 const schemas = require('../validation/schemas');
 
 const router = express.Router();
 
-// РЕГИСТРАЦИЯ
-router.post('/register', validateMiddleware(schemas.register), async (req,res) => {
-    try {
-        const {email, password, username} = req.body;
-        if (!email || !password || !username) {
-            return res.status(400).json({ message: 'All fields are required' });
-        }
+// защита от брутфорса
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 минут
+    max: 10,
+    message: { message: 'Too many attempts, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
-        const applicant = await User.findOne({email});
-        if (applicant) {
-            return res.status(400).json({message: 'The user with this email already exists'})
+// РЕГИСТРАЦИЯ
+router.post('/register', authLimiter, validateMiddleware(schemas.register), async (req, res, next) => {
+    try {
+        const { email, password, username } = req.body;
+
+        const existing = await User.findOne({ email });
+        if (existing) {
+            return res.status(400).json({ message: 'The user with this email already exists' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const newUser = new User({
-            email,
-            password : hashedPassword,
-            username
-        })
+        const newUser = new User({ email, password: hashedPassword, username });
         await newUser.save();
 
-        res.status(201).json({message: 'The user has been successfully registered'});
-
-    } catch(e) {
-        console.error(e);
-        res.status(500).json({message: 'Internal server error'});
+        res.status(201).json({ message: 'The user has been successfully registered' });
+    } catch (e) {
+        next(e); // передаём в errorHandler
     }
 });
 
 // ЛОГИН
-router.post('/login', validateMiddleware(schemas.login), async (req,res) => {
+router.post('/login', authLimiter, validateMiddleware(schemas.login), async (req, res, next) => {
     try {
-        const {email, password} = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password are required' });
-        }
+        const { email, password } = req.body;
 
-        const user = await User.findOne({email});
-        if (!user) { // неверная почта
-            res.status(400).json({message: 'Invalid username or password'})
+        const user = await User.findOne({ email });
+        if (!user) { // FIX: добавлен return, иначе выполнение шло дальше и падало
+            return res.status(400).json({ message: 'Invalid username or password' });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) { // неверный пароль
-            res.status(400).json({message: 'Invalid username or password'})
+        if (!isMatch) { // FIX: добавлен return
+            return res.status(400).json({ message: 'Invalid username or password' });
         }
-        
+
         const token = jwt.sign(
-            { userId: user._id }, 
-            process.env.JWT_SECRET, 
-            { expiresIn: '3d' } // время может другое потом
+            { userId: user._id },
+            process.env.JWT_SECRET,
+            { expiresIn: '3d' }
         );
 
         res.status(200).json({
             message: 'Successful login',
             token,
             user: {
+                id: user._id,
                 email: user.email,
                 username: user.username,
-                id: user._id // автоматически создаётся от MongoDB
+                avatarUrl: user.avatarUrl,
             }
         });
     } catch (e) {
-        console.error(e);
-        res.status(500).json({message: 'Internal server error'});
+        next(e);
+    }
+});
+
+// ПОЛУЧЕНИЕ СВОЕГО ПРОФИЛЯ
+router.get('/me', require('../middlewares/authMiddleware'), async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user.userId).select('-password');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(user);
+    } catch (e) {
+        next(e);
     }
 });
 

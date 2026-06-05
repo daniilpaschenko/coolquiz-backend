@@ -1,14 +1,19 @@
 module.exports = (err, req, res, next) => {
-    
     console.error('Global error:', err);
 
     if (err.name === 'ValidationError') {
-        return res.status(400).json({message: err.message});
+        return res.status(400).json({ message: err.message });
     }
 
     if (err.name === 'CastError') {
-        return res.status(400).json({message: 'Invalid id format'});
+        return res.status(400).json({ message: 'Invalid id format' });
     }
 
-    res.status(500).json({message: 'Internal server error'});
+    // Duplicate key (например, email уже занят)
+    if (err.code === 11000) {
+        const field = Object.keys(err.keyValue)[0];
+        return res.status(400).json({ message: `This ${field} is already taken` });
+    }
+
+    res.status(500).json({ message: 'Internal server error' });
 };

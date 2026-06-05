@@ -1,7 +1,5 @@
 const mongoose = require('mongoose');
-const { validate } = require('./User');
 
-// ВОПРОС
 const questionSchema = new mongoose.Schema({
     questionText: {
         type: String,
@@ -17,13 +15,26 @@ const questionSchema = new mongoose.Schema({
         enum: ['multiple', 'open'],
         default: 'multiple'
     },
-    options: {
-        type : [String], // массив строк
+    timeLimitSeconds: {
+        type: Number,
         default: null,
-        validate: {validator: function(val) {
-            return this.questionType == 'open' || val.length >= 2;
-        },
-        message: 'The question must contain at least 2 answer options'}
+        validate: {
+            validator: function (val) {
+                if (val === null) return true;
+                return val >= 5 && val <= 900;
+            },
+            message: 'The question time should be null or between 5 and 900 seconds (15 minutes)'
+        }
+    },
+    options: {
+        type: [String],
+        default: null,
+        validate: {
+            validator: function (val) {
+                return this.questionType === 'open' || (val && val.length >= 2);
+            },
+            message: 'The question must contain at least 2 answer options'
+        }
     },
     correctAnswerIndex: {
         type: Number,
@@ -36,7 +47,6 @@ const questionSchema = new mongoose.Schema({
     }
 });
 
-// КВИЗ ИЗ ВОПРОСОВ
 const quizSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -52,19 +62,32 @@ const quizSchema = new mongoose.Schema({
         default: null,
     },
     creator: {
-        type: mongoose.Schema.Types.ObjectId, // айди создателя
+        type: mongoose.Schema.Types.ObjectId,
         required: true,
         ref: 'User'
     },
-    questions: [questionSchema], // массив вопросов
+    defaultTimeLimitSeconds: {
+        type: Number,
+        default: null,
+        validate: {
+            validator: function (val) {
+                if (val === null) return true;
+                return val >= 15 && val <= 3600;
+            },
+            message: 'The quiz time should be null or between 15 and 3600 seconds (1 hour)'
+        }
+    },
+    questions: [questionSchema],
     isPublic: {
         type: Boolean,
         default: true
     },
     tags: [{
-        type: String
+        type: String,
+        trim: true,
     }],
-}, { timestamps: true}
-);
+}, { timestamps: true });
+
+quizSchema.index({ title: 'text', tags: 'text' });
 
 module.exports = mongoose.model('Quiz', quizSchema);
