@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 
-const authRoutes = require('./routes/auth');
+const authRoutes = require('./routes/auth/index');
 const quizRoutes = require('./routes/quizzes');
 const attemptRoutes = require('./routes/attempts');
 const errorHandler = require('./middlewares/errorHandler');
@@ -21,7 +21,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/quizzes', quizRoutes);
-app.use('/api', attemptRoutes);
+app.use('/api/attempts', attemptRoutes);
 app.use(errorHandler);
 
 const mongoUri = process.env.MONGO_URI;

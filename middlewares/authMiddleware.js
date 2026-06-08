@@ -26,10 +26,9 @@ module.exports = (req,res,next) => {
         console.error(e);
         
         if (e.name === 'TokenExpiredError') {
-            return res.status(401).json({ message: 'Token is expired',
-                expired: true });
+            return res.status(401).json({ message: 'Token is expired', expired: true });
         }
         
-        return res.status(401).json({ message: 'Token is wrong' });
+        return res.status(401).json({ message: 'Invalid token' });
     }
 }
