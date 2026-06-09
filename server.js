@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth/index');
 const quizRoutes = require('./routes/quizzes');
 const attemptRoutes = require('./routes/attempts');
 const imageRoutes = require('./routes/images');
+const usersRoutes = require('./routes/users');
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
@@ -24,6 +25,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/attempts', attemptRoutes);
 app.use('/api/images', imageRoutes);
+app.use('/api/users', usersRoutes);
 app.use(errorHandler);
 
 const mongoUri = process.env.MONGO_URI;

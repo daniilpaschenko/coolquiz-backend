@@ -1,4 +1,4 @@
-// register, login, refresh, logout, logout-all, me (профиль)
+// register, login, refresh, logout, logout-all, me
 
 const express = require('express');
 const bcrypt = require('bcrypt');
@@ -22,13 +22,13 @@ router.post('/register', authLimiter, validateMiddleware(schemas.register), asyn
 
         const existing = await User.findOne({ $or: [{ email }, { username }] });
         if (existing) {
-            const field = existing.email === email ? 'email' : 'username'; // почта или уникальное имя пользователя
+            const field = existing.email === email ? 'email' : 'username';
             return res.status(400).json({ message: `This ${field} is already taken` });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const emailVerifyToken = generateSecureToken(); // из tokens.js
+        const emailVerifyToken = generateSecureToken();
         const emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 часа
 
         const newUser = new User({
@@ -111,7 +111,7 @@ router.post('/refresh', validateMiddleware(schemas.refreshToken), async (req, re
             return res.status(401).json({ message: 'Refresh token expired, please log in again' });
         }
 
-        // Ротация токена — старый удаляем, выдаём новую пару
+        // ротация токена — старый удаляем, выдаём новую пару
         await stored.deleteOne();
         const { accessToken, refreshToken: newRefreshToken } = await issueTokenPair(stored.user._id, req);
 
@@ -128,7 +128,6 @@ router.post('/logout', async (req, res, next) => {
         const { refreshToken } = req.body;
 
         if (refreshToken) {
-            // удаляем конкретный refresh token
             await RefreshToken.deleteOne({ token: refreshToken });
         }
 
@@ -142,7 +141,6 @@ router.post('/logout', async (req, res, next) => {
 // POST /api/auth/logout-all  (требует access token)
 router.post('/logout-all', authMiddleware, async (req, res, next) => {
     try {
-        // удаляем все refresh tokens пользователя
         await RefreshToken.deleteMany({ user: req.user.userId });
         res.json({ message: 'Logged out from all devices' });
     } catch (e) {
@@ -150,7 +148,7 @@ router.post('/logout-all', authMiddleware, async (req, res, next) => {
     }
 });
 
-// ПРОФИЛЬ
+// СВОЙ ПРОФИЛЬ (приватный — полные данные)
 // GET /api/auth/me
 router.get('/me', authMiddleware, async (req, res, next) => {
     try {

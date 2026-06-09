@@ -7,6 +7,9 @@ const schemas = require('../validation/schemas');
 
 const router = express.Router();
 
+// поля с правильными ответами — скрываем везде, где не нужно
+const HIDE_ANSWERS = '-questions.correctAnswerIndex -questions.correctAnswerText';
+
 
 // ПОЛУЧЕНИЕ ВСЕХ КВИЗОВ (ПУБЛИЧНЫХ) — с пагинацией и поиском
 router.get('/', async (req, res, next) => {
@@ -25,7 +28,7 @@ router.get('/', async (req, res, next) => {
                 .sort({ createdAt: -1 })
                 .skip((pageNum - 1) * limitNum)
                 .limit(limitNum)
-                .select('-questions.correctAnswerIndex -questions.correctAnswerText'), // не отдаём ответы в списке
+                .select(HIDE_ANSWERS), // прячем правильные ответы в общем списке квизов
             Quiz.countDocuments(filter)
         ]);
 
@@ -44,10 +47,61 @@ router.get('/', async (req, res, next) => {
 // ПОЛУЧЕНИЕ СВОИХ КВИЗОВ
 router.get('/my', authMiddleware, async (req, res, next) => {
     try {
+        // для своих квизов ответы показываем (нужны при редактировании)
         const myQuizzes = await Quiz.find({ creator: req.user.userId })
             .sort({ createdAt: -1 });
 
         res.status(200).json(myQuizzes);
+    } catch (e) {
+        next(e);
+    }
+});
+
+
+// ГЛОБАЛЬНЫЙ ЛИДЕРБОРД — топ пользователей по среднему проценту
+// GET /api/quizzes/leaderboard
+router.get('/leaderboard', async (req, res, next) => {
+    try {
+        const top = await Attempt.aggregate([ // группируем по пользователю, считаем средний процент и общее количество попыток
+            {
+                $group: {
+                    _id: '$user',
+                    totalAttempts: { $sum: 1 },
+                    avgPercentage: {
+                        $avg: {
+                            $multiply: [{ $divide: ['$score', '$maxScore'] }, 100]
+                        }
+                    },
+                    totalScore: { $sum: '$score' },
+                    totalMaxScore: { $sum: '$maxScore' },
+                }
+            },
+            { $sort: { avgPercentage: -1, totalAttempts: -1 } },
+            { $limit: 30 }, // топ 30 пользователей
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'user'
+                }
+            },
+            { $unwind: '$user' }, // превращаем массив из одного элемента в объект
+            {
+                $project: { // формируем итоговый вид для фронта
+                    _id: 0,
+                    userId: '$_id',
+                    username: '$user.username',
+                    avatarUrl: '$user.avatarUrl',
+                    totalAttempts: 1,
+                    avgPercentage: { $round: ['$avgPercentage', 1] },
+                    totalScore: 1,
+                    totalMaxScore: 1,
+                }
+            }
+        ]);
+
+        res.json(top);
     } catch (e) {
         next(e);
     }
@@ -59,7 +113,8 @@ router.get('/users/:userId', async (req, res, next) => {
     try {
         const userQuizzes = await Quiz.find({ creator: req.params.userId, isPublic: true })
             .populate('creator', 'username')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .select(HIDE_ANSWERS); // ответы скрываем и здесь
 
         res.status(200).json(userQuizzes);
     } catch (e) {
@@ -71,7 +126,9 @@ router.get('/users/:userId', async (req, res, next) => {
 // ПОЛУЧЕНИЕ КОНКРЕТНОГО КВИЗА ПО ID
 router.get('/:id', async (req, res, next) => {
     try {
-        const quiz = await Quiz.findById(req.params.id).populate('creator', 'username');
+        const quiz = await Quiz.findById(req.params.id)
+            .populate('creator', 'username')
+            .select(HIDE_ANSWERS); // прячем правильные ответы при получении конкретного квиза (они нужны только при попытке)
 
         if (!quiz) {
             return res.status(404).json({ message: 'Quiz is not found' });
@@ -143,7 +200,6 @@ router.put('/:id', authMiddleware, validateMiddleware(schemas.updateQuiz), async
             return res.status(403).json({ message: 'Quiz not found or you do not have the rights' });
         }
 
-        // обновляем только разрешённые поля, а не весь req.body
         const allowed = ['title', 'description', 'imageUrl', 'isPublic', 'tags', 'questions', 'defaultTimeLimitSeconds'];
         allowed.forEach(field => {
             if (req.body[field] !== undefined) {
@@ -161,14 +217,14 @@ router.put('/:id', authMiddleware, validateMiddleware(schemas.updateQuiz), async
 });
 
 
-// ЛИДЕРБОРД КВИЗА
+// ЛИДЕРБОРД КОНКРЕТНОГО КВИЗА
 router.get('/:quizId/leaderboard', async (req, res, next) => {
     try {
         const top = await Attempt.find({ quiz: req.params.quizId })
-            .sort({ score: -1, timeSpent: 1 }) // выше счёт → лучше; при равном — меньше времени
-            .limit(10)
+            .sort({ score: -1, timeSpent: 1 })
+            .limit(10) // топ 10 попыток
             .populate('user', 'username avatarUrl')
-            .select('user score maxScore timeSpent completedAt');
+            .select('user score maxScore timeSpent completedAt'); // показываем имя, аватар, очки, время и дату (но не правильные ответы)
 
         res.json(top);
     } catch (e) {
