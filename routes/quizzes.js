@@ -4,6 +4,8 @@ const Attempt = require('../models/Attempt');
 const authMiddleware = require('../middlewares/authMiddleware');
 const validateMiddleware = require('../middlewares/validateMiddleware');
 const schemas = require('../validation/schemas');
+const cache = require('../middlewares/cache');
+const redis = require('../services/redis');
 
 const router = express.Router();
 
@@ -12,7 +14,10 @@ const HIDE_ANSWERS = '-questions.correctAnswerIndex -questions.correctAnswerText
 
 
 // ПОЛУЧЕНИЕ ВСЕХ КВИЗОВ (ПУБЛИЧНЫХ) — с пагинацией и поиском
-router.get('/', async (req, res, next) => {
+router.get('/', cache((req) => redis.Keys.quizList(
+    req.query.page  || 1, req.query.limit || 20,
+    req.query.search, req.query.tag), redis.TTL.QUIZ_LIST),
+async (req, res, next) => {
     try {
         const { page = 1, limit = 20, search, tag } = req.query;
         const pageNum = Math.max(1, parseInt(page));
@@ -60,7 +65,7 @@ router.get('/my', authMiddleware, async (req, res, next) => {
 
 // ГЛОБАЛЬНЫЙ ЛИДЕРБОРД — топ пользователей по среднему проценту
 // GET /api/quizzes/leaderboard
-router.get('/leaderboard', async (req, res, next) => {
+router.get('/leaderboard', cache(() => redis.Keys.leaderboardGlobal(), redis.TTL.LEADERBOARD_GLOBAL), async (req, res, next) => {
     try {
         const top = await Attempt.aggregate([ // группируем по пользователю, считаем средний процент и общее количество попыток
             {
@@ -124,7 +129,7 @@ router.get('/users/:userId', async (req, res, next) => {
 
 
 // ПОЛУЧЕНИЕ КОНКРЕТНОГО КВИЗА ПО ID
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', cache((req) => redis.Keys.quiz(req.params.id), redis.TTL.QUIZ_SINGLE), async (req, res, next) => {
     try {
         const quiz = await Quiz.findById(req.params.id)
             .populate('creator', 'username')
@@ -160,6 +165,8 @@ router.post('/', authMiddleware, validateMiddleware(schemas.createQuiz), async (
         await newQuiz.save();
         await newQuiz.populate('creator', 'username');
 
+        await redis.delByPattern(redis.Keys.quizListPattern()); 
+
         res.status(201).json(newQuiz);
     } catch (e) {
         next(e);
@@ -180,6 +187,12 @@ router.delete('/:id', authMiddleware, async (req, res, next) => {
         }
 
         await Attempt.deleteMany({ quiz: req.params.id });
+
+        await redis.del(
+            redis.Keys.quiz(req.params.id),
+            redis.Keys.leaderboardQuiz(req.params.id)
+        );
+        await redis.delByPattern(redis.Keys.quizListPattern());
 
         res.status(200).json({ message: 'The quiz was successfully deleted' });
     } catch (e) {
@@ -210,6 +223,9 @@ router.put('/:id', authMiddleware, validateMiddleware(schemas.updateQuiz), async
         await quiz.save();
         await quiz.populate('creator', 'username');
 
+        await redis.del(redis.Keys.quiz(req.params.id));
+        await redis.delByPattern(redis.Keys.quizListPattern());
+
         res.json(quiz);
     } catch (e) {
         next(e);
@@ -218,7 +234,7 @@ router.put('/:id', authMiddleware, validateMiddleware(schemas.updateQuiz), async
 
 
 // ЛИДЕРБОРД КОНКРЕТНОГО КВИЗА
-router.get('/:quizId/leaderboard', async (req, res, next) => {
+router.get('/:quizId/leaderboard', cache((req) => redis.Keys.leaderboardQuiz(req.params.quizId), redis.TTL.LEADERBOARD_QUIZ), async (req, res, next) => {
     try {
         const top = await Attempt.find({ quiz: req.params.quizId })
             .sort({ score: -1, timeSpent: 1 })

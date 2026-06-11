@@ -4,6 +4,7 @@ const Quiz = require('../models/Quiz');
 const authMiddleware = require('../middlewares/authMiddleware');
 const validateMiddleware = require('../middlewares/validateMiddleware');
 const schemas = require('../validation/schemas');
+const redis = require('../services/redis');
 
 const router = express.Router();
 
@@ -55,6 +56,11 @@ router.post('/quizzes/:quizId/submit', authMiddleware, validateMiddleware(schema
         });
 
         await attempt.save();
+
+        await redis.del(
+            redis.Keys.leaderboardQuiz(quizId),
+            redis.Keys.leaderboardGlobal()
+        );
 
         res.status(200).json({
             message: 'Attempt is saved',

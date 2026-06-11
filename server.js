@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
+const { connectRedis } = require('./services/redis');
 
 const authRoutes = require('./routes/auth/index');
 const quizRoutes = require('./routes/quizzes');
@@ -33,6 +34,7 @@ const mongoUri = process.env.MONGO_URI;
 mongoose.connect(mongoUri)
     .then(() => {
         console.log('🚀 Successfully connected to the CoolQuiz cloud MongoDB!');
+        await connectRedis();
         app.listen(PORT, () => {
             console.log(`The server is running: http://localhost:${PORT}`);
         });
