@@ -10,6 +10,7 @@ const quizRoutes = require('./routes/quizzes');
 const attemptRoutes = require('./routes/attempts');
 const imageRoutes = require('./routes/images');
 const usersRoutes = require('./routes/users');
+const logger = require('./utils/logger');
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
@@ -22,6 +23,17 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// HTTP-логирование каждого запроса
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const ms = Date.now() - start;
+        const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info';
+        logger[level]({ method: req.method, url: req.originalUrl, status: res.statusCode, ms });
+    });
+    next();
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/attempts', attemptRoutes);
@@ -32,19 +44,19 @@ app.use(errorHandler);
 const mongoUri = process.env.MONGO_URI;
 
 mongoose.connect(mongoUri)
-    .then(() => {
-        console.log('🚀 Successfully connected to the CoolQuiz cloud MongoDB!');
+    .then(async () => {
+        logger.info('🚀 Successfully connected to the CoolQuiz cloud MongoDB!');
         await connectRedis();
         app.listen(PORT, () => {
-            console.log(`The server is running: http://localhost:${PORT}`);
+            logger.info(`The server is running: http://localhost:${PORT}`);
         });
     })
     .catch(err => {
-        console.error('❌ Error connecting to the database:', err);
+        logger.error('❌ Error connecting to the database:', err);
         process.exit(1);
     });
 
 process.on('unhandledRejection', (err) => {
-    console.error('An unhandled error:', err);
+    logger.error('An unhandled error:', err);
     process.exit(1);
 });
