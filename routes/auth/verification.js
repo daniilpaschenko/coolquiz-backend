@@ -1,26 +1,24 @@
-// verify-email, resend-verification
-
 const express = require('express');
 
 const User = require('../../models/User');
-const { emailLimiter } = require('../../middlewares/limiters');
+const { emailLimiter, verifyLimiter } = require('../../middlewares/limiters');
 const { generateSecureToken } = require('../../utils/tokens');
 const { sendVerificationEmail } = require('../../utils/email');
 
 const router = express.Router();
 
 // ПОДТВЕРЖДЕНИЕ EMAIL
-// GET /api/auth/verify-email?token=...
-router.get('/verify-email', async (req, res, next) => {
+// POST /api/auth/verify-email
+router.post('/verify-email', verifyLimiter, async (req, res, next) => {
     try {
-        const { token } = req.query;
+        const { token } = req.body;
         if (!token) {
             return res.status(400).json({ message: 'Token is required' });
         }
 
         const user = await User.findOne({
             emailVerifyToken: token,
-            emailVerifyExpires: { $gt: new Date() }, // токен не просрочен
+            emailVerifyExpires: { $gt: new Date() },
         });
 
         if (!user) {
@@ -49,7 +47,6 @@ router.post('/resend-verification', emailLimiter, async (req, res, next) => {
 
         const user = await User.findOne({ email: email.toLowerCase().trim() });
 
-        // не раскрываем существование аккаунта — одинаковый ответ в любом случае
         if (!user || user.isEmailVerified) {
             return res.json({ message: 'If this email exists and is unverified, a new link has been sent.' });
         }

@@ -18,4 +18,13 @@ const emailLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-module.exports = { authLimiter, emailLimiter };
+// для подтверждения email — 10 попыток за 15 минут
+const verifyLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 минут
+    max: 10,
+    message: { message: 'Too many attempts, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+module.exports = { authLimiter, emailLimiter, verifyLimiter };

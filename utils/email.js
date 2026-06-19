@@ -41,7 +41,7 @@ function wrapHtml(title, bodyHtml) {
       <h2 style="margin-top:0">${title}</h2>
       ${bodyHtml}
     </div>
-    <div class="footer">Это письмо отправлено автоматически. Не отвечайте на него.</div>
+    <div class="footer">This is an automated message. Please do not reply.</div>
   </div>
 </body>
 </html>`;
@@ -54,13 +54,13 @@ async function sendVerificationEmail(to, token) {
     await transporter.sendMail({
         from: FROM,
         to,
-        subject: 'Подтвердите ваш email — CoolQuiz',
-        html: wrapHtml('Добро пожаловать!', `
-            <p>Спасибо за регистрацию. Нажмите кнопку ниже, чтобы подтвердить ваш email:</p>
-            <a class="btn" style="color: #ffffff !important; text-decoration: none;" href="${link}">Подтвердить email</a>
-            <p class="note">Ссылка действует <strong>24 часа</strong>.<br>
-            Если вы не регистрировались — просто проигнорируйте это письмо.</p>
-            <p class="note">Не работает кнопка? Скопируйте ссылку:<br>
+        subject: 'Verify your email — CoolQuiz',
+        html: wrapHtml('Welcome!', `
+            <p>Thank you for registering. Click the button below to verify your email:</p>
+            <a class="btn" style="color: #ffffff !important; text-decoration: none;" href="${link}">Verify Email</a>
+            <p class="note">The link will expire in <strong>24 hours</strong>.<br>
+            If you did not register — please ignore this email.</p>
+            <p class="note">Is the button not working? Copy the link:<br>
             <a href="${link}">${link}</a></p>
         `),
     });
@@ -73,13 +73,13 @@ async function sendPasswordResetEmail(to, token) {
     await transporter.sendMail({
         from: FROM,
         to,
-        subject: 'Сброс пароля — CoolQuiz',
-        html: wrapHtml('Сброс пароля', `
-            <p>Мы получили запрос на сброс пароля для вашего аккаунта.</p>
-            <a class="btn" style="color: #ffffff !important; text-decoration: none;" href="${link}">Задать новый пароль</a>
-            <p class="note">Ссылка действует <strong>1 час</strong>.<br>
-            Если вы не запрашивали сброс — ничего делать не нужно, ваш пароль в безопасности.</p>
-            <p class="note">Не работает кнопка? Скопируйте ссылку:<br>
+        subject: 'Reset your password — CoolQuiz',
+        html: wrapHtml('Reset your password', `
+            <p>We received a request to reset the password for your account.</p>
+            <a class="btn" style="color: #ffffff !important; text-decoration: none;" href="${link}">Set a new password</a>
+            <p class="note">The link will expire in <strong>1 hour</strong>.<br>
+            If you did not request a password reset — please ignore this email.</p>
+            <p class="note">Is the button not working? Copy the link:<br>
             <a href="${link}">${link}</a></p>
         `),
     });
@@ -90,11 +90,11 @@ async function sendPasswordChangedEmail(to) {
     await transporter.sendMail({
         from: FROM,
         to,
-        subject: 'Пароль изменён — CoolQuiz',
-        html: wrapHtml('Пароль успешно изменён', `
-            <p>Пароль вашего аккаунта был успешно изменён.</p>
-            <p>Если это были не вы — немедленно свяжитесь с нами или воспользуйтесь формой сброса пароля.</p>
-            <a class="btn" style="color: #ffffff !important; text-decoration: none;" href="${BASE_URL}/forgot-password">Сбросить пароль</a>
+        subject: 'Password changed — CoolQuiz',
+        html: wrapHtml('Password successfully changed', `
+            <p>The password for your account has been successfully changed.</p>
+            <p>If this was not you — please contact us immediately or use the password reset form.</p>
+            <a class="btn" style="color: #ffffff !important; text-decoration: none;" href="${BASE_URL}/forgot-password">Reset Password</a>
         `),
     });
 }

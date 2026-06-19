@@ -19,15 +19,15 @@ const questionSchema = Joi.object({
 const schemas = {
     // АВТОРИЗАЦИЯ
     register: Joi.object({
-        username: Joi.string().min(5).max(30).trim().required()
-            .messages({ 'string.min': 'The username must be at least 5 characters long' }),
+        username: Joi.string().min(5).max(20).trim().required()
+            .messages({ 'string.min': 'The username must be at least 5 characters long', 'string.max': 'The username must be at most 20 characters long' }),
         email: Joi.string().email().trim().lowercase().required(),
-        password: Joi.string().min(6).required()
+        password: Joi.string().min(8).max(50).trim().required()
     }),
 
     login: Joi.object({
         email: Joi.string().email().trim().lowercase().required(),
-        password: Joi.string().required()
+        password: Joi.string().min(8).max(50).trim().required()
     }),
 
     // Refresh token
@@ -43,7 +43,7 @@ const schemas = {
     // Установка нового пароля
     resetPassword: Joi.object({
         token: Joi.string().required(),
-        password: Joi.string().min(6).required()
+        password: Joi.string().min(8).max(50).trim().required()
     }),
 
     // КВИЗЫ
