@@ -9,7 +9,7 @@ const validateMiddleware = require('../../middlewares/validateMiddleware');
 const authMiddleware = require('../../middlewares/authMiddleware');
 const { authLimiter } = require('../../middlewares/limiters');
 const schemas = require('../../validation/schemas');
-const { generateSecureToken, issueTokenPair } = require('../../utils/tokens');
+const { generateVerificationCode, issueTokenPair } = require('../../utils/tokens');
 const { sendVerificationEmail } = require('../../utils/email');
 
 const router = express.Router();
@@ -28,7 +28,7 @@ router.post('/register', authLimiter, validateMiddleware(schemas.register), asyn
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const emailVerifyToken = generateSecureToken();
+        const emailVerifyToken = generateVerificationCode();
         const emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 часа
 
         const newUser = new User({

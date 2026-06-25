@@ -10,7 +10,7 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-const FROM = `"CoolQuiz" <${process.env.SMTP_USER}>`;
+const FROM = `"CoolQuiz" <${process.env.SMTP_FROM}>`;
 const BASE_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
 // обёртка письма
@@ -48,20 +48,21 @@ function wrapHtml(title, bodyHtml) {
 }
 
 // подтверждение email
-async function sendVerificationEmail(to, token) {
-    const link = `${BASE_URL}/verify-email?token=${token}`;
-
+async function sendVerificationEmail(to, code) {
     await transporter.sendMail({
         from: FROM,
         to,
         subject: 'Verify your email — CoolQuiz',
+        headers: {
+            'X-Priority': '3',
+            'X-Mailer': 'CoolQuiz Mailer',
+        },
         html: wrapHtml('Welcome!', `
-            <p>Thank you for registering. Click the button below to verify your email:</p>
-            <a class="btn" style="color: #ffffff !important; text-decoration: none;" href="${link}">Verify Email</a>
-            <p class="note">The link will expire in <strong>24 hours</strong>.<br>
+            <p>Thank you for registering. Enter the code below to verify your email:</p>
+            <div style="font-size:36px; font-weight:700; letter-spacing:8px;
+                        color:#6c47d9; text-align:center; margin:24px 0;">${code}</div>
+            <p class="note">The code expires in <strong>24 hours</strong>.<br>
             If you did not register — please ignore this email.</p>
-            <p class="note">Is the button not working? Copy the link:<br>
-            <a href="${link}">${link}</a></p>
         `),
     });
 }
@@ -74,6 +75,10 @@ async function sendPasswordResetEmail(to, token) {
         from: FROM,
         to,
         subject: 'Reset your password — CoolQuiz',
+        headers: {
+            'X-Priority': '3',
+            'X-Mailer': 'CoolQuiz Mailer',
+        },
         html: wrapHtml('Reset your password', `
             <p>We received a request to reset the password for your account.</p>
             <a class="btn" style="color: #ffffff !important; text-decoration: none;" href="${link}">Set a new password</a>
@@ -91,6 +96,10 @@ async function sendPasswordChangedEmail(to) {
         from: FROM,
         to,
         subject: 'Password changed — CoolQuiz',
+        headers: {
+            'X-Priority': '3',
+            'X-Mailer': 'CoolQuiz Mailer',
+        },
         html: wrapHtml('Password successfully changed', `
             <p>The password for your account has been successfully changed.</p>
             <p>If this was not you — please contact us immediately or use the password reset form.</p>

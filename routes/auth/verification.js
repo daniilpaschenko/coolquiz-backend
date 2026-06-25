@@ -2,7 +2,7 @@ const express = require('express');
 
 const User = require('../../models/User');
 const { emailLimiter, verifyLimiter } = require('../../middlewares/limiters');
-const { generateSecureToken } = require('../../utils/tokens');
+const { generateVerificationCode } = require('../../utils/tokens');
 const { sendVerificationEmail } = require('../../utils/email');
 
 const router = express.Router();
@@ -11,13 +11,14 @@ const router = express.Router();
 // POST /api/auth/verify-email
 router.post('/verify-email', verifyLimiter, async (req, res, next) => {
     try {
-        const { token } = req.body;
-        if (!token) {
-            return res.status(400).json({ message: 'Token is required' });
+        const { email, code } = req.body;
+        if (!code || !email) {
+            return res.status(400).json({ message: 'Email and code are required' });
         }
 
         const user = await User.findOne({
-            emailVerifyToken: token,
+            email: email.toLowerCase().trim(),
+            emailVerifyToken: code,
             emailVerifyExpires: { $gt: new Date() },
         });
 
@@ -51,13 +52,13 @@ router.post('/resend-verification', emailLimiter, async (req, res, next) => {
             return res.json({ message: 'If this email exists and is unverified, a new link has been sent.' });
         }
 
-        const emailVerifyToken = generateSecureToken();
+        const emailVerifyToken = generateVerificationCode();
         user.emailVerifyToken = emailVerifyToken;
         user.emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
         await user.save();
 
         sendVerificationEmail(email, emailVerifyToken).catch(err =>
-            console.error('Email send error:', err)
+            console.error('Email send error:', err.message, err.res)
         );
 
         res.json({ message: 'If this email exists and is unverified, a new link has been sent.' });

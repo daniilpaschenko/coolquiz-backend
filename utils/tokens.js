@@ -41,8 +41,14 @@ async function issueTokenPair(userId, req) {
     return { accessToken, refreshToken };
 }
 
+// генерация 6-значного кода для подтверждения email
+function generateVerificationCode() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 module.exports = {
     generateSecureToken,
+    generateVerificationCode,
     generateAccessToken,
     generateRefreshToken,
     issueTokenPair,
